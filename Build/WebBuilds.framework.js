@@ -1283,10 +1283,10 @@ function dbg(text) {
 // === Body ===
 
 var ASM_CONSTS = {
-  7851040: () => { Module['emscripten_get_now_backup'] = performance.now; },  
- 7851095: ($0) => { performance.now = function() { return $0; }; },  
- 7851143: ($0) => { performance.now = function() { return $0; }; },  
- 7851191: () => { performance.now = Module['emscripten_get_now_backup']; }
+  7851904: () => { Module['emscripten_get_now_backup'] = performance.now; },  
+ 7851959: ($0) => { performance.now = function() { return $0; }; },  
+ 7852007: ($0) => { performance.now = function() { return $0; }; },  
+ 7852055: () => { performance.now = Module['emscripten_get_now_backup']; }
 };
 
 
@@ -2005,6 +2005,19 @@ var ASM_CONSTS = {
   		}
   		return _JS_DOM_UnityCanvasSelector.ptr;
   	}
+
+  
+  function _JS_Eval_EvalJS(ptr)
+  {
+  	var str = UTF8ToString(ptr);
+  	try {
+  		eval (str);
+  	}
+  	catch (exception)
+  	{
+  		console.error(exception);
+  	}
+  }
 
   
   function _JS_Eval_OpenURL(ptr)
@@ -7638,6 +7651,94 @@ var ASM_CONSTS = {
   function _JS_WebPlayer_FinishInitialization() {
   		Module.WebPlayer.PlayerIsInitialized();
   	}
+
+  function _RegisterUnloadCallback(objectNamePtr, methodNamePtr) {
+          var objectName = UTF8ToString(objectNamePtr);
+          var methodName = UTF8ToString(methodNamePtr);
+          
+          console.log('Registering unload callback for:', objectName, methodName);
+          
+          // Handle page unload
+          window.addEventListener('beforeunload', function(event) {
+              console.log('beforeunload event triggered');
+              if (typeof unityInstance !== 'undefined') {
+                  try {
+                      unityInstance.SendMessage(objectName, methodName);
+                  } catch(e) {
+                      console.error('Failed to send unload message to Unity:', e);
+                  }
+              }
+          });
+          
+          // Handle page hide (more reliable on mobile)
+          window.addEventListener('pagehide', function(event) {
+              console.log('pagehide event triggered');
+              if (typeof unityInstance !== 'undefined') {
+                  try {
+                      unityInstance.SendMessage(objectName, methodName);
+                  } catch(e) {
+                      console.error('Failed to send pagehide message to Unity:', e);
+                  }
+              }
+          });
+          
+          // Handle page refresh
+          window.addEventListener('unload', function(event) {
+              console.log('unload event triggered');
+              if (typeof unityInstance !== 'undefined') {
+                  try {
+                      unityInstance.SendMessage(objectName, methodName);
+                  } catch(e) {
+                      console.error('Failed to send unload message to Unity:', e);
+                  }
+              }
+          });
+      }
+
+  function _RegisterVisibilityCallback(objectNamePtr, methodNamePtr) {
+          var objectName = UTF8ToString(objectNamePtr);
+          var methodName = UTF8ToString(methodNamePtr);
+          
+          console.log('Registering visibility callback for:', objectName, methodName);
+          
+          // Handle visibility change (tab switching, minimizing)
+          document.addEventListener('visibilitychange', function() {
+              var visible = !document.hidden;
+              console.log('visibilitychange event triggered, visible:', visible);
+              
+              if (typeof unityInstance !== 'undefined') {
+                  try {
+                      unityInstance.SendMessage(objectName, methodName, visible ? "true" : "false");
+                  } catch(e) {
+                      console.error('Failed to send visibility message to Unity:', e);
+                  }
+              }
+          });
+          
+          // Handle window blur (alt-tab, clicking outside)
+          window.addEventListener('blur', function() {
+              console.log('window blur event triggered');
+              if (typeof unityInstance !== 'undefined') {
+                  try {
+                      unityInstance.SendMessage(objectName, methodName, "false");
+                  } catch(e) {
+                      console.error('Failed to send blur message to Unity:', e);
+                  }
+              }
+          });
+          
+          // Handle window focus
+          window.addEventListener('focus', function() {
+              console.log('window focus event triggered');
+              if (typeof unityInstance !== 'undefined') {
+                  try {
+                      unityInstance.SendMessage(objectName, methodName, "true");
+                  } catch(e) {
+                      console.error('Failed to send focus message to Unity:', e);
+                  }
+              }
+          });
+      }
 
   function ___assert_fail(condition, filename, line, func) {
       abort(`Assertion failed: ${UTF8ToString(condition)}, at: ` + [filename ? UTF8ToString(filename) : 'unknown filename', line, func ? UTF8ToString(func) : 'unknown function']);
@@ -16444,6 +16545,7 @@ var wasmImports = {
   "JS_Cursor_SetShow": _JS_Cursor_SetShow,
   "JS_DOM_MapViewportCoordinateToElementLocalCoordinate": _JS_DOM_MapViewportCoordinateToElementLocalCoordinate,
   "JS_DOM_UnityCanvasSelector": _JS_DOM_UnityCanvasSelector,
+  "JS_Eval_EvalJS": _JS_Eval_EvalJS,
   "JS_Eval_OpenURL": _JS_Eval_OpenURL,
   "JS_FileSystem_Initialize": _JS_FileSystem_Initialize,
   "JS_FileSystem_Sync": _JS_FileSystem_Sync,
@@ -16527,6 +16629,8 @@ var wasmImports = {
   "JS_WebGPU_SetCommandEncoder": _JS_WebGPU_SetCommandEncoder,
   "JS_WebGPU_Setup": _JS_WebGPU_Setup,
   "JS_WebPlayer_FinishInitialization": _JS_WebPlayer_FinishInitialization,
+  "RegisterUnloadCallback": _RegisterUnloadCallback,
+  "RegisterVisibilityCallback": _RegisterVisibilityCallback,
   "__assert_fail": ___assert_fail,
   "__cxa_begin_catch": ___cxa_begin_catch,
   "__cxa_end_catch": ___cxa_end_catch,
